@@ -1,0 +1,42 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+    container_name: ascii-art-frontend
+    volumes:
+      - ./frontend/src:/app/src:ro
+      - ./frontend/public:/app/public:ro
+      - ./frontend/index.html:/app/index.html:ro
+      - ./frontend/vite.config.ts:/app/vite.config.ts:ro
+      - ./frontend/tailwind.config.cjs:/app/tailwind.config.cjs:ro
+      - ./frontend/postcss.config.cjs:/app/postcss.config.cjs:ro
+      - ./frontend/tsconfig.json:/app/tsconfig.json:ro
+    command: ["bun", "run", "dev", "--", "--host", "0.0.0.0", "--port", "4173"]
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:4173').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.10"
+          memory: 256M
+    restart: unless-stopped
+    networks:
+      - easypanel
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=easypanel"
+      - "traefik.http.routers.ascii-frontend.rule=Host(`ascii.vitorplentz.com.br`)"
+      - "traefik.http.routers.ascii-frontend.entrypoints=https"
+      - "traefik.http.routers.ascii-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ascii-frontend.loadbalancer.server.port=4173"
+
+networks:
+  easypanel:
+    external: true
